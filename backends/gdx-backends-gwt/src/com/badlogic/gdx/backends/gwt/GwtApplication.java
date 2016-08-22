@@ -1,12 +1,12 @@
 /*******************************************************************************
  * Copyright 2011 See AUTHORS file.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,21 +16,13 @@
 
 package com.badlogic.gdx.backends.gwt;
 
-import com.badlogic.gdx.Application;
-import com.badlogic.gdx.ApplicationListener;
-import com.badlogic.gdx.ApplicationLogger;
-import com.badlogic.gdx.Audio;
-import com.badlogic.gdx.Files;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Graphics;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.LifecycleListener;
-import com.badlogic.gdx.Net;
-import com.badlogic.gdx.Preferences;
+import com.badlogic.gdx.*;
+import com.badlogic.gdx.backends.gwt.preloader.DefaultPreloader;
+import com.badlogic.gdx.backends.gwt.preloader.DefaultPreloaderCallback;
+import com.badlogic.gdx.backends.gwt.preloader.PreloadedAssetManager;
 import com.badlogic.gdx.backends.gwt.preloader.Preloader;
 import com.badlogic.gdx.backends.gwt.preloader.Preloader.PreloaderCallback;
 import com.badlogic.gdx.backends.gwt.preloader.Preloader.PreloaderState;
-import com.badlogic.gdx.backends.gwt.soundmanager2.SoundManager;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Clipboard;
 import com.badlogic.gdx.utils.ObjectMap;
@@ -43,20 +35,8 @@ import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.dom.client.CanvasElement;
 import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.Element;
-import com.google.gwt.dom.client.Style;
-import com.google.gwt.dom.client.Style.Unit;
 import com.google.gwt.user.client.Window;
-import com.google.gwt.user.client.ui.HasHorizontalAlignment;
-import com.google.gwt.user.client.ui.HasVerticalAlignment;
-import com.google.gwt.user.client.ui.Image;
-import com.google.gwt.user.client.ui.InlineHTML;
-import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.Panel;
-import com.google.gwt.user.client.ui.RootPanel;
-import com.google.gwt.user.client.ui.SimplePanel;
-import com.google.gwt.user.client.ui.TextArea;
-import com.google.gwt.user.client.ui.VerticalPanel;
-import com.google.gwt.user.client.ui.Widget;
+import com.google.gwt.user.client.ui.*;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -89,19 +69,19 @@ public abstract class GwtApplication implements EntryPoint, Application {
 	/** @return the configuration for the {@link GwtApplication}. */
 	public abstract GwtApplicationConfiguration getConfig ();
 
-	
+
 	public String getPreloaderBaseURL()
 	{
 		return GWT.getHostPageBaseURL() + "assets/";
 	}
-	
+
 	@Override
 	public ApplicationListener getApplicationListener() {
 		return listener;
 	}
-	
+
 	public abstract ApplicationListener createApplicationListener();
-	
+
 	@Override
 	public void onModuleLoad () {
 		GwtApplication.agentInfo = computeAgentInfo();
@@ -135,50 +115,32 @@ public abstract class GwtApplication implements EntryPoint, Application {
 			}
 		}
 
-		
-		if (config.disableAudio) {
-			preloadAssets();
-		} else {
-			// initialize SoundManager2
-			SoundManager.init(GWT.getModuleBaseURL(), 9, config.preferFlash, new SoundManager.SoundManagerCallback() {
-
-				@Override
-				public void onready () {
-					preloadAssets();
-				}
-
-				@Override
-				public void ontimeout (String status, String errorType) {
-					error("SoundManager", status + " " + errorType);
-				}
-
-			});
-		}
+		addEventListeners();
+		preload();
 	}
-	
-	void preloadAssets () {
+
+	private void preload() {
 		final PreloaderCallback callback = getPreloaderCallback();
 		preloader = createPreloader();
-		preloader.preload("assets.txt", new PreloaderCallback() {
-			@Override
-			public void error (String file) {
-				callback.error(file);
-			}
+		preloader.preload(new PreloaderCallback() {
+							  @Override
+							  public void error(String file) {
+								  callback.error(file);
+							  }
 
-			@Override
-			public void update (PreloaderState state) {
-				callback.update(state);
-				if (state.hasEnded()) {
-					getRootPanel().clear();
-					if(loadingListener != null)
-						loadingListener.beforeSetup();
-					setupLoop();
-					addEventListeners();
-					if(loadingListener != null)
-						loadingListener.afterSetup();
-				}
-			}
-		});
+							  @Override
+							  public void update(PreloaderState state) {
+								  callback.update(state);
+								  if (state.hasEnded()) {
+									  if (loadingListener != null)
+										  loadingListener.beforeSetup();
+									  setupLoop();
+									  if (loadingListener != null)
+										  loadingListener.afterSetup();
+								  }
+							  }
+						  }
+		);
 	}
 
 	/**
@@ -211,7 +173,7 @@ public abstract class GwtApplication implements EntryPoint, Application {
 		Gdx.graphics = graphics;
 		Gdx.gl20 = graphics.getGL20();
 		Gdx.gl = Gdx.gl20;
-		Gdx.files = new GwtFiles(preloader);
+		Gdx.files = new GwtFiles(preloader.getPreloadedAssetManager());
 		this.input = new GwtInput(graphics.canvas);
 		Gdx.input = this.input;
 		this.net = new GwtNet(config);
@@ -269,37 +231,11 @@ public abstract class GwtApplication implements EntryPoint, Application {
 	long loadStart = TimeUtils.nanoTime();
 
 	public Preloader createPreloader() {
-		return new Preloader(getPreloaderBaseURL());
+		return new DefaultPreloader("assets.txt", getPreloaderBaseURL());
 	}
 
 	public PreloaderCallback getPreloaderCallback () {
-		final Panel preloaderPanel = new VerticalPanel();
-		preloaderPanel.setStyleName("gdx-preloader");
-		final Image logo = new Image(GWT.getModuleBaseURL() + "logo.png");
-		logo.setStyleName("logo");		
-		preloaderPanel.add(logo);
-		final Panel meterPanel = new SimplePanel();
-		meterPanel.setStyleName("gdx-meter");
-		meterPanel.addStyleName("red");
-		final InlineHTML meter = new InlineHTML();
-		final Style meterStyle = meter.getElement().getStyle();
-		meterStyle.setWidth(0, Unit.PCT);
-		meterPanel.add(meter);
-		preloaderPanel.add(meterPanel);
-		getRootPanel().add(preloaderPanel);
-		return new PreloaderCallback() {
-
-			@Override
-			public void error (String file) {
-				System.out.println("error: " + file);
-			}
-			
-			@Override
-			public void update (PreloaderState state) {
-				meterStyle.setWidth(100f * state.getProgress(), Unit.PCT);
-			}			
-			
-		};
+		return new DefaultPreloaderCallback(root);
 	}
 
 	@Override
@@ -321,7 +257,7 @@ public abstract class GwtApplication implements EntryPoint, Application {
 	public Files getFiles () {
 		return Gdx.files;
 	}
-	
+
 	@Override
 	public Net getNet() {
 		return Gdx.net;
@@ -421,7 +357,7 @@ public abstract class GwtApplication implements EntryPoint, Application {
 	public Clipboard getClipboard () {
 		return clipboard;
 	}
-	
+
 	@Override
 	public void postRunnable (Runnable runnable) {
 		runnables.add(runnable);
@@ -431,19 +367,19 @@ public abstract class GwtApplication implements EntryPoint, Application {
 	public void exit () {
 	}
 
-    /**
-     * @return {@code true} if application runs on a mobile device
-     */
+	/**
+	 * @return {@code true} if application runs on a mobile device
+	 */
 	public static boolean isMobileDevice() {
-	    // RegEx pattern from detectmobilebrowsers.com (public domain)
-        String pattern = "(android|bb\\d+|meego).+mobile|avantgo|bada\\/|blackberry|blazer|compal|elaine|fennec" +
-                "|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)" +
-                "i|palm( os)?|phone|p(ixi|re)\\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\\.(browser|link)" +
-                "|vodafone|wap|windows ce|xda|xiino|android|ipad|playbook|silk";
-        Pattern p = Pattern.compile(pattern);
-        Matcher m = p.matcher(Window.Navigator.getUserAgent().toLowerCase());
-        return m.matches();
-    }
+		// RegEx pattern from detectmobilebrowsers.com (public domain)
+		String pattern = "(android|bb\\d+|meego).+mobile|avantgo|bada\\/|blackberry|blazer|compal|elaine|fennec" +
+				"|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)" +
+				"i|palm( os)?|phone|p(ixi|re)\\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\\.(browser|link)" +
+				"|vodafone|wap|windows ce|xda|xiino|android|ipad|playbook|silk";
+		Pattern p = Pattern.compile(pattern);
+		Matcher m = p.matcher(Window.Navigator.getUserAgent().toLowerCase());
+		return m.matches();
+	}
 
 	/** Contains precomputed information on the user-agent. Useful for dealing with browser and OS behavioral differences. Kindly
 	 * borrowed from PlayN */
@@ -453,67 +389,67 @@ public abstract class GwtApplication implements EntryPoint, Application {
 
 	/** kindly borrowed from PlayN **/
 	private static native AgentInfo computeAgentInfo () /*-{
-																			var userAgent = navigator.userAgent.toLowerCase();
-																			return {
-																			// browser type flags
-																			isFirefox : userAgent.indexOf("firefox") != -1,
-																			isChrome : userAgent.indexOf("chrome") != -1,
-																			isSafari : userAgent.indexOf("safari") != -1,
-																			isOpera : userAgent.indexOf("opera") != -1,
-																			isIE : userAgent.indexOf("msie") != -1 || userAgent.indexOf("trident") != -1,
-																			// OS type flags
-																			isMacOS : userAgent.indexOf("mac") != -1,
-																			isLinux : userAgent.indexOf("linux") != -1,
-																			isWindows : userAgent.indexOf("win") != -1
-																			};
-																			}-*/;
+		var userAgent = navigator.userAgent.toLowerCase();
+		return {
+			// browser type flags
+			isFirefox : userAgent.indexOf("firefox") != -1,
+			isChrome : userAgent.indexOf("chrome") != -1,
+			isSafari : userAgent.indexOf("safari") != -1,
+			isOpera : userAgent.indexOf("opera") != -1,
+			isIE : userAgent.indexOf("msie") != -1 || userAgent.indexOf("trident") != -1,
+			// OS type flags
+			isMacOS : userAgent.indexOf("mac") != -1,
+			isLinux : userAgent.indexOf("linux") != -1,
+			isWindows : userAgent.indexOf("win") != -1
+		};
+	}-*/;
 
 	/** Returned by {@link #agentInfo}. Kindly borrowed from PlayN. */
 	public static class AgentInfo extends JavaScriptObject {
 		public final native boolean isFirefox () /*-{
-																return this.isFirefox;
-																}-*/;
+			return this.isFirefox;
+		}-*/;
 
 		public final native boolean isChrome () /*-{
-																return this.isChrome;
-																}-*/;
+			return this.isChrome;
+		}-*/;
 
 		public final native boolean isSafari () /*-{
-																return this.isSafari;
-																}-*/;
+			return this.isSafari;
+		}-*/;
 
 		public final native boolean isOpera () /*-{
-															return this.isOpera;
-															}-*/;
+			return this.isOpera;
+		}-*/;
 
 		public final native boolean isIE () /*-{
-														return this.isIE;
-														}-*/;
+			return this.isIE;
+		}-*/;
 
 		public final native boolean isMacOS () /*-{
-															return this.isMacOS;
-															}-*/;
+			return this.isMacOS;
+		}-*/;
 
 		public final native boolean isLinux () /*-{
-															return this.isLinux;
-															}-*/;
+			return this.isLinux;
+		}-*/;
 
 		public final native boolean isWindows () /*-{
-																return this.isWindows;
-																}-*/;
+			return this.isWindows;
+		}-*/;
 
 		protected AgentInfo () {
 		}
 	}
 
 	public String getBaseUrl () {
-		return preloader.baseUrl;
+		return getPreloaderBaseURL();
 	}
 
-	public Preloader getPreloader () {
-		return preloader;
+	public PreloadedAssetManager getPreloadedAssetManager() {
+		return preloader.getPreloadedAssetManager();
 	}
-	
+
 	public CanvasElement getCanvasElement(){
 		return graphics.canvas;
 	}
@@ -537,13 +473,13 @@ public abstract class GwtApplication implements EntryPoint, Application {
 	public void removeLifecycleListener (LifecycleListener listener) {
 		synchronized(lifecycleListeners) {
 			lifecycleListeners.removeValue(listener, true);
-		}		
+		}
 	}
-	
+
 	native static public void consoleLog(String message) /*-{
 		console.log( "GWT: " + message );
 	}-*/;
-	
+
 	private native void addEventListeners() /*-{
 		var self = this;
 
@@ -578,7 +514,7 @@ public abstract class GwtApplication implements EntryPoint, Application {
 			listener.pause();
 		}
 	}
-	
+
 	/**
 	 * LoadingListener interface main purpose is to do some things before or after {@link GwtApplication#setupLoop()}
 	 */
@@ -587,7 +523,7 @@ public abstract class GwtApplication implements EntryPoint, Application {
 		 * Method called before the setup
 		 */
 		public void beforeSetup();
-		
+
 		/**
 		 * Method called after the setup
 		 */
