@@ -17,12 +17,10 @@
 package com.badlogic.gdx.backends.gwt;
 
 import com.badlogic.gdx.*;
-import com.badlogic.gdx.backends.gwt.preloader.DefaultPreloader;
-import com.badlogic.gdx.backends.gwt.preloader.DefaultPreloaderCallback;
-import com.badlogic.gdx.backends.gwt.preloader.PreloadedAssetManager;
-import com.badlogic.gdx.backends.gwt.preloader.Preloader;
+import com.badlogic.gdx.backends.gwt.preloader.*;
 import com.badlogic.gdx.backends.gwt.preloader.Preloader.PreloaderCallback;
 import com.badlogic.gdx.backends.gwt.preloader.Preloader.PreloaderState;
+import com.badlogic.gdx.backends.gwt.soundmanager2.SoundManager;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Clipboard;
 import com.badlogic.gdx.utils.ObjectMap;
@@ -116,7 +114,24 @@ public abstract class GwtApplication implements EntryPoint, Application {
 		}
 
 		addEventListeners();
-		preload();
+		if (config.disableAudio) {
+			preload();
+		} else {
+			// initialize SoundManager2
+			SoundManager.init(GWT.getModuleBaseURL(), 9, config.preferFlash, new SoundManager.SoundManagerCallback() {
+
+				@Override
+				public void onready () {
+					preload();
+				}
+
+				@Override
+				public void ontimeout (String status, String errorType) {
+					error("SoundManager", status + " " + errorType);
+				}
+
+			});
+		}
 	}
 
 	private void preload() {
