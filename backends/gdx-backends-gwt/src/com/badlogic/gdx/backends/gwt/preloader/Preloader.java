@@ -20,69 +20,69 @@ import com.badlogic.gdx.utils.Array;
 
 public interface Preloader {
 
-    void preload (PreloaderCallback callback);
+	void preload (PreloaderCallback callback);
 
-    PreloadedAssetManager getPreloadedAssetManager();
+	PreloadedAssetManager getPreloadedAssetManager();
 
-    interface PreloaderCallback {
+	interface PreloaderCallback {
 
-        void update(PreloaderState state);
+		void update(PreloaderState state);
 
-        void error(String file);
+		void error(String file);
 
-    }
+	}
 
-    class PreloaderState {
+	class PreloaderState {
 
-        public PreloaderState(Array<DefaultPreloader.Asset> assets) {
-            this.assets = assets;
-        }
+		public PreloaderState(Array<DefaultPreloader.Asset> assets) {
+			this.assets = assets;
+		}
 
-        public long getDownloadedSize() {
-            long size = 0;
-            for (int i = 0; i < assets.size; i++) {
-                DefaultPreloader.Asset asset = assets.get(i);
-                size += (asset.succeed || asset.failed) ? asset.size : Math.min(asset.size, asset.loaded);
-            }
-            return size;
-        }
+		public long getDownloadedSize() {
+			long size = 0;
+			for (int i = 0; i < assets.size; i++) {
+				DefaultPreloader.Asset asset = assets.get(i);
+				size += (asset.succeed || asset.failed) ? asset.size : Math.min(asset.size, asset.loaded);
+			}
+			return size;
+		}
 
-        public long getTotalSize() {
-            long size = 0;
-            for (int i = 0; i < assets.size; i++) {
-                DefaultPreloader.Asset asset = assets.get(i);
-                size += asset.size;
-            }
-            return size;
-        }
+		public long getTotalSize() {
+			long size = 0;
+			for (int i = 0; i < assets.size; i++) {
+				DefaultPreloader.Asset asset = assets.get(i);
+				size += asset.size;
+			}
+			return size;
+		}
 
-        public float getProgress() {
-            long total = getTotalSize();
-            return total == 0 ? 1 : (getDownloadedSize() / (float) total);
-        }
+		public float getProgress() {
+			long total = getTotalSize();
+			return total == 0 ? 1 : (getDownloadedSize() / (float) total);
+		}
 
-        public boolean hasEnded() {
-            return getDownloadedSize() == getTotalSize();
-        }
+		public boolean hasEnded() {
+			return getDownloadedSize() == getTotalSize();
+		}
 
-        public final Array<DefaultPreloader.Asset> assets;
+		public final Array<DefaultPreloader.Asset> assets;
 
-    }
+	}
 
-    class Asset {
-        public Asset (String url, AssetFilter.AssetType type, long size, String mimeType) {
-            this.url = url;
-            this.type = type;
-            this.size = size;
-            this.mimeType = mimeType;
-        }
+	class Asset {
+		public Asset (String url, AssetFilter.AssetType type, long size, String mimeType) {
+			this.url = url;
+			this.type = type;
+			this.size = size;
+			this.mimeType = mimeType;
+		}
 
-        public boolean succeed;
-        public boolean failed;
-        public long loaded;
-        public final String url;
-        public final AssetFilter.AssetType type;
-        public final long size;
-        public final String mimeType;
-    }
+		public boolean succeed;
+		public boolean failed;
+		public long loaded;
+		public final String url;
+		public final AssetFilter.AssetType type;
+		public final long size;
+		public final String mimeType;
+	}
 }

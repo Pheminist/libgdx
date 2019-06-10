@@ -24,48 +24,48 @@ import com.google.gwt.user.client.ui.*;
 
 public class DefaultPreloaderCallback implements Preloader.PreloaderCallback {
 
-    private static final String PRELOADER_ID = "gdx-preloader";
+	private static final String PRELOADER_ID = "gdx-preloader";
 
-    private final Panel preloaderPanel;
+	private final Panel preloaderPanel;
 
-    private final Style meterStyle;
-    private final Panel meterPanel;
+	private final Style meterStyle;
+	private final Panel meterPanel;
 
-    public DefaultPreloaderCallback(Panel panel) {
+	public DefaultPreloaderCallback(Panel panel) {
 
-        preloaderPanel = new VerticalPanel();
-        preloaderPanel.getElement().setId(PRELOADER_ID);
-        preloaderPanel.setStyleName("gdx-preloader");
-        Image logo = new Image(GWT.getModuleBaseURL() + "logo.png");
-        logo.setStyleName("logo");
-        preloaderPanel.add(logo);
-        meterPanel = new SimplePanel();
-        meterPanel.setStyleName("gdx-meter");
-        meterPanel.addStyleName("red");
-        InlineHTML meter = new InlineHTML();
-        meterStyle = meter.getElement().getStyle();
-        meterStyle.setWidth(0, Style.Unit.PCT);
-        meterPanel.add(meter);
-        preloaderPanel.add(meterPanel);
+		preloaderPanel = new VerticalPanel();
+		preloaderPanel.getElement().setId(PRELOADER_ID);
+		preloaderPanel.setStyleName("gdx-preloader");
+		Image logo = new Image(GWT.getModuleBaseURL() + "logo.png");
+		logo.setStyleName("logo");
+		preloaderPanel.add(logo);
+		meterPanel = new SimplePanel();
+		meterPanel.setStyleName("gdx-meter");
+		meterPanel.addStyleName("red");
+		InlineHTML meter = new InlineHTML();
+		meterStyle = meter.getElement().getStyle();
+		meterStyle.setWidth(0, Style.Unit.PCT);
+		meterPanel.add(meter);
+		preloaderPanel.add(meterPanel);
 
-        Element element = Document.get().getElementById("embed-" + GWT.getModuleName());
-        if (element != null) {
-            element.appendChild(preloaderPanel.getElement());
-        } else {
-            panel.add(preloaderPanel);
-        }
-    }
+		Element element = Document.get().getElementById("embed-" + GWT.getModuleName());
+		if (element != null) {
+			element.appendChild(preloaderPanel.getElement());
+		} else {
+			panel.add(preloaderPanel);
+		}
+	}
 
-    @Override
-    public void error (String file) {
-        System.out.println("error: " + file);
-    }
+	@Override
+	public void error (String file) {
+		System.out.println("error: " + file);
+	}
 
-    @Override
-    public void update (Preloader.PreloaderState state) {
-        meterStyle.setWidth(100f * state.getProgress(), Style.Unit.PCT);
-        if (state.hasEnded()) {
-            Document.get().getElementById(PRELOADER_ID).removeFromParent();
-        }
-    }
+	@Override
+	public void update (Preloader.PreloaderState state) {
+		meterStyle.setWidth(100f * state.getProgress(), Style.Unit.PCT);
+		if (state.hasEnded()) {
+			Document.get().getElementById(PRELOADER_ID).removeFromParent();
+		}
+	}
 }
