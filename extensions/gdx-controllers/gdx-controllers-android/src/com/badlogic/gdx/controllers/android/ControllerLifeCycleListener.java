@@ -16,20 +16,22 @@
 
 package com.badlogic.gdx.controllers.android;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.hardware.input.InputManager;
 import android.hardware.input.InputManager.InputDeviceListener;
 
+import android.os.Build;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.LifecycleListener;
 import com.badlogic.gdx.backends.android.AndroidApplication;
-import com.badlogic.gdx.backends.android.AndroidInput;
 
 /**
  * Used on +4.1 to get events on device connects/disconnects.
  * @author mzechner
  *
  */
+@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
 public class ControllerLifeCycleListener implements LifecycleListener, InputDeviceListener {
 	private static final String TAG = "ControllerLifeCycleListener";
 	private final InputManager inputManager;

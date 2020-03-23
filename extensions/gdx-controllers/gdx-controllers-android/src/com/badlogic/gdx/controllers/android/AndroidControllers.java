@@ -30,7 +30,6 @@ import com.badlogic.gdx.backends.android.AndroidInputThreePlus;
 import com.badlogic.gdx.controllers.Controller;
 import com.badlogic.gdx.controllers.ControllerListener;
 import com.badlogic.gdx.controllers.ControllerManager;
-import com.badlogic.gdx.controllers.PovDirection;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.IntMap;
 import com.badlogic.gdx.utils.IntMap.Entry;
@@ -58,12 +57,7 @@ public class AndroidControllers implements LifecycleListener, ControllerManager,
 		
 		// use InputManager on Android +4.1 to receive (dis-)connect events
 		if(Gdx.app.getVersion() >= 16) {
-			try {
-				String className = "com.badlogic.gdx.controllers.android.ControllerLifeCycleListener";
-				Class.forName(className).getConstructor(AndroidControllers.class).newInstance(this);
-			} catch(Exception e) {
-				Gdx.app.log(TAG, "Couldn't register controller life-cycle listener");
-			}
+			new ControllerLifeCycleListener(this);
 		}
 	}
 	
